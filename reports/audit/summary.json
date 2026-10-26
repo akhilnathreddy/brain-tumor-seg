@@ -1,0 +1,115 @@
+{
+ "patients_found": 369,
+ "patients_ok": 369,
+ "patients_skipped": [],
+ "issues": {
+  "BraTS20_Training_355": "misnamed seg file 'W39_1998.09.19_Segm.nii' (used it)"
+ },
+ "confirmed": {
+  "shapes": {
+   "240x240x155": 369
+  },
+  "voxel_size_mm": {
+   "1x1x1": 369
+  },
+  "label_sets": {
+   "0,1,2,4": 340,
+   "0,1,2": 27,
+   "0,2,4": 1,
+   "0,1,4": 1
+  },
+  "image_dtypes": {
+   "int16": 335,
+   "float32": 34
+  },
+  "seg_dtypes": {
+   "uint8": 255,
+   "int16": 71,
+   "uint16": 43
+  },
+  "tumor_voxels_outside_brain_total": 1248,
+  "brain_extent_px_max": [
+   157,
+   193
+  ],
+  "crop_side_counts": {
+   "192": 358,
+   "195": 4,
+   "193": 3,
+   "194": 1,
+   "197": 1,
+   "201": 1,
+   "196": 1
+  },
+  "brain_volume_ml_mean": 1449.5
+ },
+ "no_patient_overlap": true,
+ "splits": {
+  "train": {
+   "patients": 258,
+   "HGG": 205,
+   "LGG": 53,
+   "slices_cached": 34528,
+   "tumor_slices": 16995,
+   "tumor_free_slices": 17533,
+   "slices_per_epoch": 19625
+  },
+  "val": {
+   "patients": 55,
+   "HGG": 44,
+   "LGG": 11,
+   "slices_cached": 7481,
+   "tumor_slices": 3734,
+   "tumor_free_slices": 3747
+  },
+  "test": {
+   "patients": 56,
+   "HGG": 44,
+   "LGG": 12,
+   "slices_cached": 7472,
+   "tumor_slices": 3693,
+   "tumor_free_slices": 3779
+  }
+ },
+ "tumor_volume_ml": {
+  "WT": {
+   "mean": 99.5,
+   "median": 90.7,
+   "min": 7.28,
+   "max": 361.8,
+   "patients_with_zero": 0
+  },
+  "TC": {
+   "mean": 41.8,
+   "median": 33.8,
+   "min": 0.56,
+   "max": 190.2,
+   "patients_with_zero": 0
+  },
+  "ET": {
+   "mean": 19.7,
+   "median": 15.1,
+   "min": 0.0,
+   "max": 111.2,
+   "patients_with_zero": 27
+  }
+ },
+ "resampling_ceiling_dice": {
+  "WT": {
+   "mean": 0.9853,
+   "min": 0.9534
+  },
+  "TC": {
+   "mean": 0.9843,
+   "min": 0.9256
+  },
+  "ET": {
+   "mean": 0.9565,
+   "min": 0.2222
+  }
+ },
+ "disk": {
+  "raw_zip": "4.2G",
+  "processed_cache": "11G"
+ }
+}
