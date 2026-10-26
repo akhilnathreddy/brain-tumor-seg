@@ -1,0 +1,14 @@
+# data (BraTS is downloaded via the Kaggle API; never commit it)
+data/
+# training outputs
+runs/
+checkpoints/
+*.pt
+*.pth
+*.onnx
+# python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.DS_Store

@@ -1,0 +1,16 @@
+# Data / preprocessing settings. Paths are relative to the repo root.
+raw_path: data/raw/brats20-dataset-training-validation.zip  # zip OR extracted folder
+processed_dir: data/processed
+splits_file: configs/splits.json
+
+seed: 42
+split: {train: 0.70, val: 0.15, test: 0.15}   # by patient, stratified by grade
+
+sequences: [flair, t1, t1ce, t2]   # channel order everywhere
+img_size: 160          # training resolution (in-plane)
+min_crop: 192          # crop a >=192x192 box around the brain, then resize to img_size
+clip_percentiles: [0.5, 99.5]
+min_brain_pixels: 300  # slices with less brain than this (and no tumor) are not cached
+
+# training-time slice sampling: all tumor slices + this fraction of tumor-free brain slices
+empty_slice_fraction: 0.15

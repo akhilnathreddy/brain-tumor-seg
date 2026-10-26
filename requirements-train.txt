@@ -1,0 +1,18 @@
+# Local training / evaluation (Mac: plain `pip install torch` gives MPS support)
+torch>=2.3
+torchvision
+segmentation-models-pytorch>=0.3
+albumentations>=2.0
+opencv-python-headless
+nibabel
+numpy
+pandas
+scikit-learn
+matplotlib
+pyyaml
+tqdm
+tensorboard
+kaggle
+nbformat
+nbconvert
+ipykernel
