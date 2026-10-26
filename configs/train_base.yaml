@@ -1,0 +1,11 @@
+# Defaults shared by every training run; configs/runs/*.yaml override these.
+seed: 42
+batch_size: 16
+epochs: 30              # upper bound; early stopping usually ends sooner
+patience: 6             # stop after this many epochs without a better val Dice
+lr: 0.001
+weight_decay: 0.0001
+lr_patience: 3          # halve the LR after this many epochs without improvement
+modality_dropout: 0.3   # chance of zeroing one random sequence per training slice
+num_workers: 4
+pretrained: true        # only used by resunet34

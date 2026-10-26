@@ -1,0 +1,5 @@
+# Same as resunet34 but WITHOUT modality dropout: the control for the missing-sequence test.
+name: resunet34_nomd
+model: resunet34
+lr: 0.0003
+modality_dropout: 0.0
