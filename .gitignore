@@ -1,8 +1,8 @@
 # data (BraTS is downloaded via the Kaggle API; never commit it)
-data/
+/data/
 # training outputs
-runs/
-checkpoints/
+/runs/
+/checkpoints/
 *.pt
 *.pth
 *.onnx
