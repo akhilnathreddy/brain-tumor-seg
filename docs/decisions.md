@@ -79,3 +79,55 @@ tumor). 27 patients (mostly LGG) have no enhancing tumor at all, so ET Dice for
 them depends on predicting *nothing*; this is handled in evaluation (empty
 prediction on empty ground truth = Dice 1). Patient 307 has only 32 ET voxels; at
 160 px such a tiny region can't be represented exactly (resampling ceiling 0.22).
+
+## Models and training
+
+**Three architectures, same everything else.** All models get identical data,
+augmentation, loss, optimizer schedule and early stopping, so differences in the
+results come from the architecture alone.
+- *Plain U-Net* (7.8M params, from scratch): the standard baseline for medical
+  segmentation; skip connections carry fine detail from encoder to decoder.
+- *Attention U-Net* (7.9M): the same U-Net plus attention gates on each skip
+  connection. The gate uses the coarser decoder signal to down-weight skip features
+  away from the tumor, which helps with small targets like enhancing tumor. Costs
+  only ~0.1M extra parameters.
+- *ResNet34 U-Net* (24.4M, `segmentation_models_pytorch`): encoder pretrained on
+  ImageNet. Natural-image edges and textures transfer surprisingly well to MRI and
+  usually speed up convergence. smp adapts the first conv to 4 input channels by
+  reusing the pretrained RGB filters (cycled and rescaled), so no pretrained
+  weights are thrown away. It gets a lower learning rate (3e-4 vs 1e-3) so the
+  pretrained features aren't destroyed in the first epochs.
+
+**3 sigmoid outputs, not a 4-class softmax.** WT ⊃ TC ⊃ ET overlap, so each region
+is its own yes/no question. This also optimizes directly for the regions BraTS
+evaluates.
+
+**Loss: Dice + BCE.** BCE gives stable, well-behaved gradients per pixel; Dice
+optimizes overlap directly and is insensitive to the huge background/tumor
+imbalance (tumor is often < 2% of a slice). Soft Dice is computed over the whole
+batch per region, so batches with no tumor don't produce 0/0.
+
+**Modality dropout (p = 0.3).** During training, 30% of slices have one random
+sequence set to zero, which is exactly what a missing sequence looks like after
+our preprocessing. The model learns not to depend on any single sequence. To
+measure whether this actually helps, the ResNet34 model is trained twice: with
+(`resunet34`) and without (`resunet34_nomd`) modality dropout.
+
+**Early stopping on per-patient validation Dice.** Validation Dice is accumulated
+per patient over all of that patient's slices and averaged over patients and the
+three regions. Per patient (not per slice) because that is how the test set is
+scored and how a clinician sees results: one score per scan. Empty prediction on
+empty ground truth counts as 1, otherwise the 27 patients without ET would be
+scored 0 no matter what. Training stops after 6 epochs without improvement (max
+30); the best checkpoint is kept. The LR is halved after 3 flat epochs.
+
+**AdamW, batch 16, fp32.** AdamW is a robust default; batch 16 at 160×160 fits
+easily in 16 GB unified memory. Mixed precision is left off for MPS stability
+(MPS autocast support is still uneven).
+
+**Reproducibility.** Seed 42 for Python/NumPy/torch, a seeded DataLoader
+generator, and per-worker augmentation seeds derived from it (without this,
+parallel workers would produce identical augmentations).
+
+**Resume support.** A Mac that sleeps or a run that's interrupted can continue
+from `last.pt` with `--resume` instead of starting over.
