@@ -42,8 +42,8 @@ class BraTSSlices(Dataset):
     For validation, every cached slice is used.
     """
 
-    def __init__(self, split, cfg, train=False, modality_dropout=0.0, seed=42):
-        self.cfg, self.train = cfg, train
+    def __init__(self, split, cfg, train=False, modality_dropout=0.0, seed=42, return_pid=False):
+        self.cfg, self.train, self.return_pid = cfg, train, return_pid
         self.modality_dropout = modality_dropout
         self.dir = ROOT / cfg["processed_dir"] / "slices"
         df = pd.read_csv(ROOT / cfg["processed_dir"] / "slices.csv")
@@ -82,6 +82,8 @@ class BraTSSlices(Dataset):
             x, y = self._augment(x, y)
             if self.modality_dropout > 0 and self.rng.random() < self.modality_dropout:
                 x[self.rng.integers(x.shape[0])] = 0.0       # simulate a missing sequence
+        if self.return_pid:
+            return torch.from_numpy(x), torch.from_numpy(y), pid
         return torch.from_numpy(x), torch.from_numpy(y)
 
     def _augment(self, x, y):
@@ -89,3 +91,13 @@ class BraTSSlices(Dataset):
         x, y = out["image"].transpose(2, 0, 1).copy(), out["mask"].transpose(2, 0, 1)
         x = intensity_jitter(x, self.rng)
         return x, y.astype(np.float32)
+
+
+def worker_init_fn(worker_id):
+    """Give each DataLoader worker its own augmentation RNG.
+
+    torch hands every worker a different seed each epoch (derived from the main
+    seed), so runs stay reproducible but workers don't repeat each other.
+    """
+    info = torch.utils.data.get_worker_info()
+    info.dataset.rng = np.random.default_rng(torch.initial_seed() % 2**32)
