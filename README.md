@@ -6,7 +6,7 @@ sequences (FLAIR, T1, T1ce, T2), and reports their volumes in mL with a per-voxe
 uncertainty map. Three 2D U-Net variants are compared, and the models keep working
 when a sequence is missing.
 
-**Live demo:** _link added after deployment_ · research / education use only, not for diagnosis.
+**Live demo: https://brain-tumor-seg-ml.streamlit.app/** · pick an example patient or upload your own scan · research / education use only, not for diagnosis.
 
 ![App screenshot](docs/app_screenshot.png)
 

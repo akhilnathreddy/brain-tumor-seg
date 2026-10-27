@@ -50,9 +50,11 @@ Issues met:
 - macOS "Too many open files" on the first Mac run → loader now reads slices without keeping files open.
 - Kaggle notebook runs need the new-style Kaggle API token; the run was pushed from the Mac.
 
-## Step 6 — Finish 🟡
+## Step 6 — Finish ✅
 
-Next:
-1. Deploy on Streamlit Community Cloud (`docs/deployment.md`).
-2. Add the live URL to the README.
-3. Optional: `python -m src.export --benchmark` on the Mac for MPS vs CPU vs ONNX timings.
+- Deployed on Streamlit Community Cloud: https://brain-tumor-seg-ml.streamlit.app/ (checked: example patient segments with the same volumes as locally, no errors).
+- README with problem, approach, results, screenshot, live URL, how to run, limitations, citations; `docs/decisions.md`, `docs/deployment.md`.
+
+Optional next steps:
+- `python -m src.export --benchmark` on the Mac for MPS vs CPU vs ONNX timings.
+- Segment the non-enhancing compartment separately (the weakest cases are low-grade gliomas).
