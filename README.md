@@ -33,13 +33,67 @@ audit is in [`notebooks/01_data_audit.ipynb`](notebooks/01_data_audit.ipynb).
 
 ## Results (test set, 56 patients)
 
-_Filled in after the final training runs — see [`notebooks/02_results.ipynb`](notebooks/02_results.ipynb)._
+56 held-out patients that were never used for training or model selection, scored
+in 3D at the original 1 mm resolution. Mean (median) over patients; full tables in
+[`reports/eval/test/results.md`](reports/eval/test/results.md), figures and
+discussion in [`notebooks/02_results.ipynb`](notebooks/02_results.ipynb).
 
-| model | Dice WT | Dice TC | Dice ET | HD95 WT (mm) |
-|---|---|---|---|---|
-| U-Net | – | – | – | – |
-| Attention U-Net | – | – | – | – |
-| ResNet34 U-Net | – | – | – | – |
+| model | Dice WT | Dice TC | Dice ET | HD95 WT (mm) | \|volume error\| WT (mL) |
+|---|---|---|---|---|---|
+| U-Net | 0.902 (0.924) | 0.826 (0.880) | 0.793 (0.868) | 8.7 (3.7) | 7.7 (5.9) |
+| Attention U-Net | 0.906 (0.933) | 0.829 (0.901) | 0.783 (0.861) | 7.7 (3.2) | 7.6 (4.8) |
+| **ResNet34 U-Net** ★ | 0.900 (0.920) | 0.834 (0.906) | 0.787 (0.864) | 19.6 (6.0) | 7.6 (4.4) |
+| ResNet34 U-Net, no modality dropout | 0.903 (0.930) | 0.835 (0.903) | 0.760 (0.860) | 12.8 (4.0) | 6.3 (2.9) |
+
+★ Default model in the app, picked by **validation** Dice (0.825 vs 0.821–0.822), not by the test score.
+
+**What the numbers say**
+
+- **The architecture barely matters here.** All four models are within ~0.01 Dice of
+  each other, less than the spread between patients. With careful preprocessing, a
+  2D U-Net's backbone is not the bottleneck; the pretrained encoder mainly converged
+  faster (best validation score at epoch 10).
+- **Mean HD95 ≫ median HD95.** A few patients get a small false-positive blob far
+  from the tumor, which barely changes Dice but costs tens of millimetres of HD95.
+  The typical boundary error is 3–6 mm.
+- **Enhancing tumor is the hardest region.** Some low-grade gliomas have no enhancing
+  tumor at all; predicting even 0.2 mL there gives Dice 0. The three worst test
+  patients are all low-grade, while their whole tumor is still found well (Dice 0.83–0.94).
+
+![Best and worst test patients](reports/eval/test/gallery.png)
+
+### Missing sequences: modality dropout works
+
+Mean Dice WT / TC / ET of the ResNet34 U-Net when one sequence is removed (set to zero):
+
+| removed | trained with modality dropout | trained without |
+|---|---|---|
+| — (all 4) | 0.900 / 0.834 / 0.787 | 0.903 / 0.835 / 0.760 |
+| FLAIR | **0.834** / 0.800 / 0.765 | 0.583 / 0.746 / 0.717 |
+| T1 | 0.893 / 0.801 / 0.772 | 0.885 / 0.789 / 0.743 |
+| T1ce | 0.895 / **0.658 / 0.342** | 0.887 / 0.412 / 0.049 |
+| T2 | 0.889 / 0.822 / 0.783 | 0.875 / 0.784 / 0.771 |
+
+Randomly blanking one sequence during training costs nothing when all four are
+present and makes the model far more robust: without FLAIR, whole-tumor Dice stays at
+0.83 instead of collapsing to 0.58. T1ce stays essential for enhancing tumor — by
+definition, that is the region that lights up after contrast — but even there the
+model keeps 0.34 instead of 0.05.
+
+![Missing-sequence test](reports/eval/test/missing_sequences.png)
+
+### Uncertainty and test-time augmentation
+
+- **The uncertainty map points at the errors.** Across all models, uncertainty
+  separates wrong from right voxels with AUROC 0.97; the 1% most uncertain voxels
+  are wrong 27–30% of the time versus 0.7–0.8% for all other voxels (35–40× more often).
+- **Test-time augmentation helps a little:** +0.001 to +0.007 Dice (+0.023 ET for the
+  model without modality dropout), for ~1.4× the time on a GPU and ~2.6× on a CPU.
+  It is an option in the app, off by default.
+- **Speed:** ~2.2 s per patient on a Kaggle T4 GPU; ~10 s on a 4-core cloud CPU,
+  which is what the hosted app runs on.
+
+![Uncertainty vs errors](reports/eval/test/uncertainty.png)
 
 ## Run it locally
 

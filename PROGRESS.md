@@ -15,7 +15,7 @@ Issues / notes:
 - Fixed: albumentations `RandomBrightnessContrast` clips floats to [0,1]; replaced with a hand-written per-sequence jitter.
 - This work ran in a cloud container (CPU only). The code also runs on the Mac (`raw_path` can be the zip or an extracted folder).
 
-## Step 2 — Models 🟡 (code done; final training runs on the Mac)
+## Step 2 — Models ✅
 
 Done:
 - `src/models.py`: plain U-Net (7.8M), Attention U-Net (7.9M), ResNet34 U-Net via smp (24.4M, ImageNet encoder, 4-channel input).
@@ -26,7 +26,7 @@ Done:
 - Smoke-tested on CPU: all models train, checkpoint and resume.
 
 
-## Steps 3–5 — Evaluation, advanced features, app 🟡 (code done and tested; waiting for trained models)
+## Steps 3–5 — Evaluation, advanced features, app ✅
 
 Done:
 - `src/inference.py`: whole-scan prediction at native resolution, TTA (4 views), uncertainty map, missing sequences.
@@ -34,14 +34,25 @@ Done:
 - `src/evaluate.py`: test set once — every model ± TTA, missing-sequence test (with vs without modality dropout) → `reports/eval/<split>/per_patient.csv`.
 - `src/report.py`: results tables, model comparison, missing-sequence chart, best/worst gallery with automatic failure reasons, uncertainty figure.
 - `src/viz.py`: overlays, uncertainty map, tumor area per slice, plotly 3D view.
-- `src/export.py`: fp16 weights (ResNet34 U-Net 49 MB), ONNX, speed benchmark (PyTorch vs ONNX Runtime).
+- `src/export.py`: fp16 weights (ResNet34 U-Net 47 MB), ONNX, speed benchmark (PyTorch vs ONNX Runtime).
 - `app.py`: Streamlit demo (examples or upload, missing-sequence warning, model choice, TTA, slice slider, overlay toggles, uncertainty, volumes, area chart, 3D view, expert-label comparison, NIfTI download, disclaimer, citations).
 - `examples/`: 3 held-out test patients (24 MB), `requirements.txt` (CPU-only torch, verified in a clean environment).
 - `notebooks/02_results.ipynb` (runs after evaluation).
 - Tested end to end with quick CPU-trained models (numbers not reported — those models are placeholders).
 
+- Trained all four models in one unattended Kaggle T4 run (`kaggle/train_kaggle.py`, 4 h 43 min incl. preprocessing and evaluation); early stopping after 16–22 epochs.
+- Test set (56 patients), ResNet34 U-Net (chosen by validation Dice 0.825): Dice WT 0.900 / TC 0.834 / ET 0.787; all four models within ~0.01 Dice.
+- Modality dropout: without FLAIR WT Dice 0.834 vs 0.583; without T1ce ET Dice 0.342 vs 0.049.
+- Uncertainty AUROC 0.97; TTA +0.001–0.007 Dice.
+- Weights (`models/*.pt`, 15–47 MB), results (`reports/eval/test/`), training histories (`reports/training/`) committed; results notebook executed; README results and app screenshot added.
+
+Issues met:
+- macOS "Too many open files" on the first Mac run → loader now reads slices without keeping files open.
+- Kaggle notebook runs need the new-style Kaggle API token; the run was pushed from the Mac.
+
+## Step 6 — Finish 🟡
+
 Next:
-1. Train on the Mac: `python -m src.train --run configs/runs/<name>.yaml --estimate`, then train `resunet34`, `resunet34_nomd`, `unet`, `attunet`.
-2. `python -m src.evaluate`, `python -m src.report`, `python -m src.export --benchmark`, run `notebooks/02_results.ipynb`.
-3. Commit the fp16 weights in `models/`, the results, the README table and an app screenshot (`docs/app_screenshot.png`).
-4. Deploy to Streamlit Community Cloud.
+1. Deploy on Streamlit Community Cloud (`docs/deployment.md`).
+2. Add the live URL to the README.
+3. Optional: `python -m src.export --benchmark` on the Mac for MPS vs CPU vs ONNX timings.
