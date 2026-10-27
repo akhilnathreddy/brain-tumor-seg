@@ -50,7 +50,7 @@ class BraTSSlices(Dataset):
         self.all = df[df.split == split].reset_index(drop=True)
         self.rng = np.random.default_rng(seed)
         self.aug = train_augment() if train else None
-        self._arrays = {}
+        self._layout = {}
         self.resample()
 
     def resample(self):
@@ -63,21 +63,33 @@ class BraTSSlices(Dataset):
             df = pd.concat([tumor, empty.iloc[pick]])
         self.items = df[["pid", "row"]].to_numpy()
 
-    def _arr(self, pid):
-        # memory-mapped, so opening is cheap and only touched slices are read
-        if pid not in self._arrays:
-            self._arrays[pid] = (np.load(self.dir / f"{pid}_img.npy", mmap_mode="r"),
-                                 np.load(self.dir / f"{pid}_msk.npy", mmap_mode="r"))
-        return self._arrays[pid]
+    def _read(self, pid, kind, row):
+        """Read one slice from a cached .npy file without keeping the file open.
+
+        Memory-mapping every patient keeps hundreds of files open per worker, more
+        than macOS allows by default (256), so each read opens, seeks and closes.
+        """
+        path = self.dir / f"{pid}_{kind}.npy"
+        if path not in self._layout:
+            with open(path, "rb") as f:
+                version = np.lib.format.read_magic(f)
+                read_header = (np.lib.format.read_array_header_1_0 if version == (1, 0)
+                               else np.lib.format.read_array_header_2_0)
+                shape, _, dtype = read_header(f)
+                self._layout[path] = (f.tell(), shape[1:], dtype)
+        offset, shape, dtype = self._layout[path]
+        nbytes = int(np.prod(shape)) * dtype.itemsize
+        with open(path, "rb") as f:
+            f.seek(offset + row * nbytes)
+            return np.frombuffer(f.read(nbytes), dtype=dtype).reshape(shape)
 
     def __len__(self):
         return len(self.items)
 
     def __getitem__(self, i):
         pid, row = self.items[i]
-        img, msk = self._arr(pid)
-        x = np.asarray(img[row], dtype=np.float32)          # (4,H,W)
-        y = bits_to_regions(np.asarray(msk[row]))           # (3,H,W)
+        x = self._read(pid, "img", row).astype(np.float32)  # (4,H,W)
+        y = bits_to_regions(self._read(pid, "msk", row))     # (3,H,W)
         if self.train:
             x, y = self._augment(x, y)
             if self.modality_dropout > 0 and self.rng.random() < self.modality_dropout:
