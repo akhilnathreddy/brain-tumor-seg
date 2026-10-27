@@ -22,10 +22,22 @@ from src.inference import OnnxPredictor, TorchPredictor, load_model, predict_vol
 from src.utils import ROOT, get_device, load_config
 
 
+def to_half(key, value):
+    """fp16 for weights; BatchNorm running stats stay fp32 because they can exceed
+    the fp16 range (one running_var in the plain U-Net is ~5e6 > 65504 -> inf)."""
+    if not value.is_floating_point() or key.endswith(("running_mean", "running_var")):
+        return value
+    return value.half()
+
+
 def export_half(name):
     ckpt = torch.load(ROOT / "checkpoints" / name / "best.pt", map_location="cpu", weights_only=False)
     out = ROOT / "models" / f"{name}.pt"
-    torch.save({"state_dict": {k: v.half() if v.is_floating_point() else v for k, v in ckpt["model"].items()},
+    state = {k: to_half(k, v) for k, v in ckpt["model"].items()}
+    bad = [k for k, v in state.items() if v.is_floating_point() and not torch.isfinite(v).all()]
+    if bad:
+        raise ValueError(f"{name}: values out of fp16 range in {bad}")
+    torch.save({"state_dict": state,
                 "model_name": ckpt["model_name"], "val_dice": ckpt["val_dice"], "epoch": ckpt["epoch"]}, out)
     return out
 
