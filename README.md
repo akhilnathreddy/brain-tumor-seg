@@ -158,6 +158,12 @@ app.py        Streamlit demo
   (e.g. HD-BET for skull stripping, registration to a common template).
 - **Low-grade gliomas are under-represented** (~20% of patients), and many have no
   enhancing tumor, which makes ET hard to score for them.
+- **The non-enhancing tumor compartment is not segmented on its own.** Following the
+  BraTS regions, it is folded into the tumor core. Our weakest test cases are
+  low-grade gliomas, which are largely non-enhancing (tumor-core Dice 0.15–0.58 for
+  the worst three). Schaffer et al. [4] argue that this compartment indicates
+  survival time and areas of further tumor growth, and design a U-Net that segments
+  it explicitly — a natural next step for this project.
 - Not validated for clinical use.
 
 ## Data and citation
@@ -167,3 +173,7 @@ BraTS 2020 (Kaggle copy `awsaf49/brats20-dataset-training-validation`). As reque
 1. B. H. Menze et al., "The Multimodal Brain Tumor Image Segmentation Benchmark (BRATS)", *IEEE TMI* 34(10), 2015. doi:10.1109/TMI.2014.2377694
 2. S. Bakas et al., "Advancing The Cancer Genome Atlas glioma MRI collections with expert segmentation labels and radiomic features", *Scientific Data* 4:170117, 2017. doi:10.1038/sdata.2017.117
 3. S. Bakas et al., "Identifying the Best Machine Learning Algorithms for Brain Tumor Segmentation, Progression Assessment, and Overall Survival Prediction in the BRATS Challenge", arXiv:1811.02629, 2018.
+
+Related work:
+
+4. T. Schaffer, A. Brawanski, S. Wein, A. M. Tomé, E. W. Lang, "Brain Tumor Segmentation with Special Emphasis on the Non-Enhancing Brain Tumor Compartment", arXiv:2602.21703, 2026.
