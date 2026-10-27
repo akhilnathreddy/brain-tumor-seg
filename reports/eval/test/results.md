@@ -45,6 +45,6 @@ Best model by validation Dice: **ResNet34 U-Net** (val mean Dice 0.825). Values 
 
 ## Why the worst patients fail
 
-- **BraTS20_Training_266**: low-grade glioma (under-represented: ~20% of training data); tiny true ET (0.00 mL): a few voxels decide Dice; WT HD95 74 mm: false-positive region far from the tumor
-- **BraTS20_Training_335**: low-grade glioma (under-represented: ~20% of training data); tiny true ET (0.00 mL): a few voxels decide Dice
-- **BraTS20_Training_280**: low-grade glioma (under-represented: ~20% of training data); tiny true TC (0.83 mL): a few voxels decide Dice; WT HD95 88 mm: false-positive region far from the tumor
+- **BraTS20_Training_266** (Dice 0.94 / 0.40 / 0.00): low-grade glioma (under-represented: ~20% of training data); no ET in the expert label but 0.2 mL predicted (Dice 0 by definition); WT HD95 74 mm: false-positive region far from the tumor
+- **BraTS20_Training_335** (Dice 0.91 / 0.58 / 0.00): low-grade glioma (under-represented: ~20% of training data); no ET in the expert label but 0.6 mL predicted (Dice 0 by definition)
+- **BraTS20_Training_280** (Dice 0.83 / 0.15 / 0.59): low-grade glioma (under-represented: ~20% of training data); tiny true TC (0.83 mL): a few voxels decide Dice; WT HD95 88 mm: false-positive region far from the tumor

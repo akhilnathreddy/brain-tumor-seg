@@ -33,11 +33,15 @@ def brain_box(vol, pad=4):
 
 
 def best_model_by_val():
-    """Pick the model with the highest validation Dice (never the test score)."""
-    scores = {}
-    for p in (ROOT / "checkpoints").glob("*/best.pt"):
-        ck = torch.load(p, map_location="cpu", weights_only=False)
-        scores[p.parent.name] = float(np.mean(list(ck["val_dice"].values())))
+    """Pick the model with the highest validation Dice (never the test score).
+
+    Reads the training checkpoints, or the exported weights in models/ (which keep
+    the validation Dice) when the checkpoints aren't on this machine.
+    """
+    paths = {p.parent.name: p for p in (ROOT / "checkpoints").glob("*/best.pt")} or \
+            {p.stem: p for p in (ROOT / "models").glob("*.pt")}
+    scores = {name: float(np.mean(list(torch.load(p, map_location="cpu", weights_only=False)["val_dice"].values())))
+              for name, p in paths.items()}
     return max(scores, key=scores.get), scores
 
 
@@ -114,10 +118,11 @@ def failure_notes(r):
     if r.grade == "LGG":
         notes.append("low-grade glioma (under-represented: ~20% of training data)")
     for reg in REGIONS:
-        if r[f"vol_gt_{reg}"] < 1 and r[f"dice_{reg}"] < 0.5:
-            notes.append(f"tiny true {reg} ({r[f'vol_gt_{reg}']:.2f} mL): a few voxels decide Dice")
-        elif r[f"vol_gt_{reg}"] == 0 and r[f"vol_pred_{reg}"] > 0:
-            notes.append(f"no {reg} in the label but {r[f'vol_pred_{reg}']:.1f} mL predicted")
+        gt, pred = r[f"vol_gt_{reg}"], r[f"vol_pred_{reg}"]
+        if gt == 0 and pred > 0:
+            notes.append(f"no {reg} in the expert label but {pred:.1f} mL predicted (Dice 0 by definition)")
+        elif 0 < gt < 1 and r[f"dice_{reg}"] < 0.5:
+            notes.append(f"tiny true {reg} ({gt:.2f} mL): a few voxels decide Dice")
     if r.hd95_WT > 30:
         notes.append(f"WT HD95 {r.hd95_WT:.0f} mm: false-positive region far from the tumor")
     ratio = r.vol_pred_WT / max(r.vol_gt_WT, 1e-3)
@@ -138,7 +143,6 @@ def fig_gallery(df, model, split, cfg, out, k=3):
     pred = TorchPredictor(load_model(ROOT / "checkpoints" / model / "best.pt", device)[0], device)
     source = BraTSSource(ROOT / cfg["raw_path"])
     fig, axes = plt.subplots(len(picks), 3, figsize=(10.5, 3.2 * len(picks)))
-    notes = {}
     for i, (kind, r) in enumerate(picks):
         vol, seg, _ = check_and_load(source, r.pid)
         gt = labels_to_regions(seg)
@@ -155,8 +159,6 @@ def fig_gallery(df, model, split, cfg, out, k=3):
         axes[i, 0].text(-0.06, 0.5, f"{kind.upper()}\n{r.pid[-3:]} · {r.grade}\nDice "
                         + " / ".join(f"{getattr(r, f'dice_{x}'):.2f}" for x in REGIONS) + f"\nz={z}",
                         transform=axes[i, 0].transAxes, ha="right", va="center", fontsize=9, color=MUTED)
-        if kind == "worst":
-            notes[r.pid] = failure_notes(d.set_index("pid").loc[r.pid])
     handles = [Line2D([], [], color=REGION_COLORS[n], lw=2, label=n) for n in REGIONS]
     fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False)
     fig.suptitle(f"{LABELS.get(model, model)} on the {split} set: best and worst patients (Dice WT / TC / ET)",
@@ -164,7 +166,6 @@ def fig_gallery(df, model, split, cfg, out, k=3):
     fig.tight_layout(rect=(0.08, 0.02, 1, 1))
     fig.savefig(out / "gallery.png", dpi=120, bbox_inches="tight")
     plt.close(fig)
-    return notes
 
 
 def fig_uncertainty(df, model, split, cfg, out):
@@ -273,10 +274,13 @@ def main():
     fig_models(df, out)
     fig_missing(df, out)
     if not args.no_images:
-        notes = fig_gallery(df, best, args.split, cfg, out)
+        fig_gallery(df, best, args.split, cfg, out)
         fig_uncertainty(df, best, args.split, cfg, out)
-        md += ["## Why the worst patients fail", ""]
-        md += [f"- **{pid}**: " + "; ".join(n) for pid, n in notes.items()]
+    d = df[(df.model == best) & ~df.tta & df["drop"].isna()].copy()
+    d["dice_mean"] = d[[f"dice_{r}" for r in REGIONS]].mean(1)
+    md += ["## Why the worst patients fail", ""]
+    md += [f"- **{r.pid}** (Dice " + " / ".join(f"{r[f'dice_{x}']:.2f}" for x in REGIONS) + "): "
+           + "; ".join(failure_notes(r)) for _, r in d.nsmallest(3, "dice_mean").iterrows()]
     (out / "results.md").write_text("\n".join(md) + "\n")
     (out / "best_model.json").write_text(json.dumps({"best": best, "val_mean_dice": val_scores}, indent=1))
     print("\n".join(md))
