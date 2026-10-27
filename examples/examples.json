@@ -1,0 +1,17 @@
+[
+ {
+  "pid": "BraTS20_Training_150",
+  "grade": "HGG",
+  "wt_ml": 149.3
+ },
+ {
+  "pid": "BraTS20_Training_292",
+  "grade": "LGG",
+  "wt_ml": 77.0
+ },
+ {
+  "pid": "BraTS20_Training_082",
+  "grade": "HGG",
+  "wt_ml": 10.1
+ }
+]
