@@ -66,6 +66,19 @@ python -m src.export --benchmark  # fp16 weights + ONNX → models/, speed → r
 On Apple Silicon training uses the GPU via MPS automatically
 (`PYTORCH_ENABLE_MPS_FALLBACK=1` is set for unsupported ops).
 
+### Train on a free Kaggle GPU instead
+
+The final models were trained this way: one unattended run on a Kaggle T4 that
+preprocesses the data, trains all four models, evaluates on the test set and
+exports the weights.
+
+```bash
+kaggle kernels push -p kaggle --accelerator NvidiaTeslaT4   # needs a phone-verified Kaggle account
+kaggle kernels status <your-username>/brain-tumor-seg-train
+kaggle kernels output <your-username>/brain-tumor-seg-train -p kaggle-out   # when COMPLETE
+```
+Change the `id` in `kaggle/kernel-metadata.json` to your username first.
+
 ## Repository
 
 ```
@@ -74,6 +87,7 @@ configs/      data settings, patient split, one YAML per training run
 notebooks/    01 data audit · 02 results
 models/       exported half-precision weights used by the app
 examples/     3 test-set patients bundled with the app
+kaggle/       script + settings to train everything on a Kaggle GPU
 reports/      audit and evaluation outputs
 docs/         decisions.md (why), app screenshot
 app.py        Streamlit demo

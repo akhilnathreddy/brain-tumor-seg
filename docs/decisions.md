@@ -132,6 +132,20 @@ parallel workers would produce identical augmentations).
 **Resume support.** A Mac that sleeps or a run that's interrupted can continue
 from `last.pt` with `--resume` instead of starting over.
 
+**Where the final training ran: a free Kaggle T4.** On the M2 Pro, the ResNet34 U-Net
+alone was estimated at 0.8–1.1 h (3.1 min/epoch), but all four runs add up to
+4–6 h of a busy laptop. One unattended Kaggle session (`kaggle/train_kaggle.py`)
+runs the identical code end to end: it clones this repo, reads the dataset as an
+extracted folder (the loader handles both zip and folder), trains the four
+models, evaluates on the test set and exports the weights. The patient split comes
+from `configs/splits.json`, so the data is split exactly as in local runs.
+
+**No open files per patient.** The first Mac run failed with "Too many open
+files": memory-mapping the cache kept 2 files per patient open in every
+DataLoader worker (~500), above macOS's default limit of 256. Each slice is now
+read with a plain seek + read (the file header is parsed once and its offset
+remembered), which is just as fast and keeps no files open.
+
 ## Evaluation
 
 **Scored in 3D, at native resolution.** Slice predictions are stacked, resized back
