@@ -1,0 +1,12 @@
+batch_size: 16
+epochs: 30
+lr: 0.001
+lr_patience: 3
+modality_dropout: 0.3
+model: unet
+name: unet
+num_workers: 4
+patience: 6
+pretrained: true
+seed: 42
+weight_decay: 0.0001
