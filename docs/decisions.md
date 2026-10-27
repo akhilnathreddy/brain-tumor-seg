@@ -131,3 +131,69 @@ parallel workers would produce identical augmentations).
 
 **Resume support.** A Mac that sleeps or a run that's interrupted can continue
 from `last.pt` with `--resume` instead of starting over.
+
+## Evaluation
+
+**Scored in 3D, at native resolution.** Slice predictions are stacked, resized back
+from 160 px to the crop size and pasted into the original 240×240×155 grid, so
+Dice, HD95 and volumes are measured exactly where the expert labels live (1 mm³
+voxels: 1000 voxels = 1 mL). Scoring at 160 px would flatter the model.
+
+**Test set used once.** Model choice uses validation Dice only (`best.pt` stores
+it); `src.evaluate` defaults to the test split and is meant to be run a single time
+at the end. `--split val` exists for development.
+
+**Metrics.** Dice measures overlap; HD95 (95th-percentile surface distance, mm)
+catches what Dice hides — a small false-positive blob far from the tumor barely
+changes Dice but ruins HD95; volume error in mL is what a clinician would read off
+a report. Mean *and* median are reported because a few failures drag the mean
+down. Conventions (as in BraTS): empty prediction on empty truth → Dice 1, HD95 0;
+exactly one empty → HD95 373 mm (the image diagonal).
+
+**Post-processing kept minimal.** Probabilities are thresholded at 0.5 and nesting
+is enforced (ET ⊆ TC ⊆ WT) so the output is anatomically consistent; nothing
+outside the brain mask is kept. No connected-component tricks, so the numbers show
+what the network itself does.
+
+**Test-time augmentation.** Average of 4 views — original, horizontal flip, ±10°
+rotation — all inside the training augmentation range (views the model never saw,
+like vertical flips, would hurt). Predictions are mapped back before averaging.
+Costs 4× time; the report shows whether it pays off.
+
+**Uncertainty = entropy of the averaged probability.** For each voxel, binary
+entropy of the mean probability, maximum over the 3 regions: 0 when the model is
+sure, 1 at p = 0.5. It works for every model, with or without TTA (with TTA the
+average also absorbs disagreement between views, which is the TTA uncertainty
+the brief asked for). MC dropout was not used: the pretrained ResNet34 U-Net has
+no dropout layers, and one method for all models keeps the comparison fair. The
+check that it is meaningful: AUROC of uncertainty for predicting wrong voxels,
+and the error rate among the 1% most uncertain voxels vs. the rest.
+
+**Missing-sequence test.** Each sequence is zeroed in turn (exactly what a missing
+file becomes in the app) for the ResNet34 U-Net trained with and without modality
+dropout. Same architecture, same seed: any difference is due to modality dropout.
+
+## Export and app
+
+**Half-precision weights for the app.** fp16 halves the file (ResNet34 U-Net:
+98 → 49 MB, under GitHub's 50 MB warning) with a maximum probability change of
+~1e-4; weights are cast back to fp32 on load because CPU fp16 inference is slow.
+
+**ONNX for speed measurements.** ONNX Runtime ran ~2× faster than PyTorch on CPU
+in a first test. The app still uses PyTorch: the fp32 ONNX file (98 MB) is close
+to GitHub's 100 MB hard limit, and keeping one code path means the app runs exactly
+the evaluated pipeline.
+
+**App design.** One page, no login or database. A prediction is computed once per
+(input, model, TTA) and kept in the session; only one result is kept to stay inside
+the free tier's memory. Views are cropped to the brain so images are larger.
+Missing sequences are allowed (zero-filled, with a warning) because the models
+were trained for it. Device is auto-detected (CPU on Streamlit Cloud).
+
+**Bundled examples.** Three test-set patients (never used in training or model
+selection): a large high-grade tumor, a low-grade tumor and the smallest tumor,
+~8 MB each as compressed NIfTI with their expert labels, so visitors can compare.
+Licensing: the Kaggle copy is marked CC0; the BraTS organizers' terms allow use
+provided their papers are cited and say nothing specific about redistribution.
+Bundling three cases for an educational demo with full citations (app footer and
+README) is in the spirit of those terms.
