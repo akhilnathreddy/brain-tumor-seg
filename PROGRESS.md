@@ -56,5 +56,4 @@ Issues met:
 - README with problem, approach, results, screenshot, live URL, how to run, limitations, citations; `docs/decisions.md`, `docs/deployment.md`.
 
 Optional next steps:
-- `python -m src.export --benchmark` on the Mac for MPS vs CPU vs ONNX timings.
 - Segment the non-enhancing compartment separately (the weakest cases are low-grade gliomas).
