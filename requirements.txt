@@ -1,0 +1,14 @@
+# Streamlit app (CPU only). Training/evaluation extras: requirements-train.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+segmentation-models-pytorch==0.5.0
+streamlit==1.66.1
+nibabel==5.4.2
+numpy==2.5.4
+scipy==1.18.1
+scikit-learn==1.9.1
+scikit-image==0.26.0
+plotly==7.1.0
+matplotlib==3.11.2
+pyyaml==6.0.3

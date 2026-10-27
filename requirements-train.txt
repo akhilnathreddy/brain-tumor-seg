@@ -12,6 +12,12 @@ matplotlib
 pyyaml
 tqdm
 tensorboard
+scipy
+scikit-image
+plotly
+streamlit
+onnx
+onnxruntime
 kaggle
 nbformat
 nbconvert
